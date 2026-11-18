@@ -1,0 +1,381 @@
+q<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kayıt ve Arama Paneli</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#2c3e50">
+
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f0f2f5;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            width: 100%;
+            max-width: 950px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr auto;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover { background-color: #219653; }
+        
+        .excel-section {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px dashed #cbd5e1;
+        }
+        textarea {
+            width: 100%;
+            height: 60px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin-top: 5px;
+            font-size: 13px;
+        }
+        .excel-btn {
+            background-color: #2980b9;
+            margin-top: 8px;
+        }
+        .excel-btn:hover { background-color: #2471a3; }
+
+        .export-btn {
+            background-color: #16a085;
+            margin-top: 10px;
+        }
+        .export-btn:hover { background-color: #138d75; }
+
+        .search-box { margin-bottom: 15px; }
+        .search-box input {
+            font-size: 15px;
+            background-color: #fffdf4;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            min-width: 600px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .islem-td { display: flex; gap: 4px; }
+        .sil-btn {
+            background-color: #e74c3c;
+            padding: 5px 8px;
+            font-size: 11px;
+            width: auto;
+        }
+        .sil-btn:hover { background-color: #c0392b; }
+
+        .duzenle-btn {
+            background-color: #27ae60;
+            padding: 5px 8px;
+            font-size: 11px;
+            width: auto;
+        }
+        .duzenle-btn:hover { background-color: #219653; }
+
+        .info-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        @media screen and (max-width: 768px) {
+            body { padding: 5px; }
+            .container { padding: 10px; }
+            .form-grid { grid-template-columns: 1fr; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 id="panelBaslik">Araç ve Kişi Kayıt Yönetim Paneli</h2>
+
+        <div class="form-grid">
+            <input type="text" id="adiSoyadi" placeholder="ADI SOYADI">
+            <input type="text" id="tcNo" placeholder="TC KİMLİK NO (11 hane)" maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="text" id="dogumTarihi" placeholder="GG.AA.YYYY (Örn: 05111979)" maxlength="10" oninput="tarihBicimlendir(this)">
+            <input type="text" id="plaka" placeholder="PLAKA">
+            <button id="islemButon" onclick="kayitIslemiYap()">Ekle</button>
+        </div>
+
+        <div class="excel-section">
+            <strong>Excel İşlemleri:</strong>
+            <div class="info-text">Excel'den kopyalayıp buraya yapıştırarak toplu ekleyebilir veya sistemdeki kayıtları sütunlu Excel olarak indirebilirsiniz.</div>
+            <textarea id="excelInput" placeholder="Örn: SALİH AYKANAT \t 5261504488 \t 05.11.1979 \t 34NP058"></textarea>
+            <button class="excel-btn" onclick="exceldenAktar()">Toplu Aktar (İçe Aktar)</button>
+            <button class="export-btn" onclick="excelsIndir()">📊 Tüm Kayıtları Excel Olarak İndir (Sütunlu)</button>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="aramaInput" onkeyup="filtrele()" placeholder="🔍 İsim, TC, Plaka ara...">
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ADI SOYADI</th>
+                        <th>TC KİMLİK NO</th>
+                        <th>DOĞUM TARİHİ</th>
+                        <th>PLAKA</th>
+                        <th style="width: 120px;">İŞLEM</th>
+                    </tr>
+                </thead>
+                <tbody id="tabloGovdesi"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let kayitlar = JSON.parse(localStorage.getItem("gelismisKayitlar")) || [];
+        let duzenlenenIndex = null;
+
+        window.onload = function() {
+            listeyiCiz(kayitlar);
+        };
+
+        function tarihBicimlendir(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val.length > 2 && val.length <= 4) {
+                val = val.substring(0, 2) + '.' + val.substring(2);
+            } else if (val.length > 4) {
+                val = val.substring(0, 2) + '.' + val.substring(2, 4) + '.' + val.substring(4, 8);
+            }
+            input.value = val;
+        }
+
+        function kayitIslemiYap() {
+            let adi = document.getElementById("adiSoyadi").value.trim();
+            let tc = document.getElementById("tcNo").value.trim();
+            let dogum = document.getElementById("dogumTarihi").value.trim();
+            let plaka = document.getElementById("plaka").value.trim();
+
+            if (tc !== "" && tc.length !== 11) {
+                alert("Hata: TC Kimlik Numarası eksiksiz 11 haneli olmalıdır! (Şu anki hane: " + tc.length + ")");
+                return;
+            }
+
+            if (!adi && !tc && !plaka) {
+                alert("Lütfen en azından bir alan doldurun!");
+                return;
+            }
+
+            if (duzenlenenIndex === null) {
+                kayitlar.push({ adi, tc, dogum, plaka });
+            } else {
+                kayitlar[duzenlenenIndex] = { adi, tc, dogum, plaka };
+                duzenlenenIndex = null;
+                document.getElementById("islemButon").innerText = "Ekle";
+                document.getElementById("islemButon").style.backgroundColor = "#27ae60";
+                document.getElementById("panelBaslik").innerText = "Araç ve Kişi Kayıt Yönetim Paneli";
+            }
+
+            kaydetVeYenile();
+            formuTemizle();
+        }
+
+        function duzenleBaslat(index) {
+            let item = kayitlar[index];
+            document.getElementById("adiSoyadi").value = item.adi;
+            document.getElementById("tcNo").value = item.tc;
+            document.getElementById("dogumTarihi").value = item.dogum;
+            document.getElementById("plaka").value = item.plaka;
+
+            duzenlenenIndex = index;
+            document.getElementById("islemButon").innerText = "Güncelle";
+            document.getElementById("islemButon").style.backgroundColor = "#2980b9";
+            document.getElementById("panelBaslik").innerText = "Kayıt Düzenleniyor (Satır #" + (index + 1) + ")";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function formuTemizle() {
+            document.getElementById("adiSoyadi").value = "";
+            document.getElementById("tcNo").value = "";
+            document.getElementById("dogumTarihi").value = "";
+            document.getElementById("plaka").value = "";
+        }
+
+        // ÇOK ESNEK VE GARANTİLİ TOPLU AKTARMA
+        function exceldenAktar() {
+            let text = document.getElementById("excelInput").value.trim();
+            if (!text) {
+                alert("Lütfen kutuya veri yapıştırın!");
+                return;
+            }
+
+            let satirlar = text.split("\n");
+            let eklenenSayisi = 0;
+
+            satirlar.forEach(satir => {
+                if (!satir.trim()) return; // Boş satırları atla
+                
+                // Başlık satırı yapıştırıldıysa ("ADI SOYADI..." gibi) atla
+                if (satir.toUpperCase().includes("ADI SOYADI") || satir.toUpperCase().includes("TC KIMLIK")) {
+                    return;
+                }
+
+                // Önce sekme (\t) ile bölmeyi dene, olmazsa boşluklara göre böl
+                let sutunlar = satir.split("\t");
+                if (sutunlar.length < 4) {
+                    sutunlar = satir.trim().split(/\s{2,}/);
+                }
+
+                if (sutunlar.length >= 3) {
+                    let adi = sutunlar[0] ? sutunlar[0].trim() : "";
+                    let tc = sutunlar[1] ? sutunlar[1].trim() : "";
+                    let dogum = sutunlar[2] ? sutunlar[2].trim() : "";
+                    let plaka = sutunlar[3] ? sutunlar[3].trim() : "";
+
+                    // TC 11 haneliyse veya boşsa kabul et (esneklik sağlandı)
+                    kayitlar.push({ adi, tc, dogum, plaka });
+                    eklenenSayisi++;
+                }
+            });
+
+            if (eklenenSayisi > 0) {
+                kaydetVeYenile();
+                document.getElementById("excelInput").value = "";
+                alert(eklenenSayisi + " adet kayıt başarıyla eklendi!");
+            } else {
+                alert("Aktarılabilecek uygun format bulunamadı. Lütfen verileri doğrudan Excel'den seçip kopyalayın.");
+            }
+        }
+
+        function excelsIndir() {
+            if (kayitlar.length === 0) {
+                alert("İndirilecek kayıt bulunmuyor!");
+                return;
+            }
+
+            let csvContent = "\uFEFFADI SOYADI;TC KIMLIK NO;DOGUM TARIHI;PLAKA\n";
+            kayitlar.forEach(item => {
+                csvContent += `${item.adi};${item.tc};${item.dogum};${item.plaka}\n`;
+            });
+
+            let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.href = url;
+            a.download = "kayitlar_listesi.csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function sil(index) {
+            if (confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
+                kayitlar.splice(index, 1);
+                if (duzenlenenIndex === index) {
+                    duzenlenenIndex = null;
+                    formuTemizle();
+                    document.getElementById("islemButon").innerText = "Ekle";
+                    document.getElementById("islemButon").style.backgroundColor = "#27ae60";
+                    document.getElementById("panelBaslik").innerText = "Araç ve Kişi Kayıt Yönetim Paneli";
+                }
+                kaydetVeYenile();
+            }
+        }
+
+        function kaydetVeYenile() {
+            localStorage.setItem("gelismisKayitlar", JSON.stringify(kayitlar));
+            listeyiCiz(kayitlar);
+        }
+
+        function listeyiCiz(veriDizisi) {
+            let tbody = document.getElementById("tabloGovdesi");
+            tbody.innerHTML = "";
+
+            if (veriDizisi.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#888;'>Henüz kayıt eklenmemiş.</td></tr>";
+                return;
+            }
+
+            veriDizisi.forEach((item, index) => {
+                let tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${item.adi}</td>
+                    <td>${item.tc}</td>
+                    <td>${item.dogum}</td>
+                    <td>${item.plaka}</td>
+                    <td>
+                        <div class="islem-td">
+                            <button class="duzenle-btn" onclick="duzenleBaslat(${index})">Düzenle</button>
+                            <button class="sil-btn" onclick="sil(${index})">Sil</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrele() {
+            let aramaKelimesi = document.getElementById("aramaInput").value.toLocaleLowerCase('tr-TR');
+            let filtrelenmis = kayitlar.filter(item => {
+                return item.adi.toLocaleLowerCase('tr-TR').includes(aramaKelimesi) ||
+                       item.tc.toLocaleLowerCase('tr-TR').includes(aramaKelimesi) ||
+                       item.dogum.toLocaleLowerCase('tr-TR').includes(aramaKelimesi) ||
+                       item.plaka.toLocaleLowerCase('tr-TR').includes(aramaKelimesi);
+            });
+            listeyiCiz(filtrelenmis);
+        }
+    </script>
+</body>
+</html>
