@@ -1,4 +1,4 @@
-q<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -99,7 +99,7 @@ q<!DOCTYPE html>
             width: 100%;
             border-collapse: collapse;
             margin-top: 5px;
-            min-width: 600px;
+            min-width: 650px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -114,6 +114,14 @@ q<!DOCTYPE html>
         tr:nth-child(even) { background-color: #f9f9f9; }
         
         .islem-td { display: flex; gap: 4px; }
+        .kopyala-btn {
+            background-color: #f39c12;
+            padding: 5px 8px;
+            font-size: 11px;
+            width: auto;
+        }
+        .kopyala-btn:hover { background-color: #d68910; }
+
         .sil-btn {
             background-color: #e74c3c;
             padding: 5px 8px;
@@ -149,10 +157,10 @@ q<!DOCTYPE html>
         <h2 id="panelBaslik">Araç ve Kişi Kayıt Yönetim Paneli</h2>
 
         <div class="form-grid">
-            <input type="text" id="adiSoyadi" placeholder="ADI SOYADI">
+            <input type="text" id="adiSoyadi" placeholder="ADI SOYADI" oninput="this.value = this.value.toLocaleUpperCase('tr-TR')">
             <input type="text" id="tcNo" placeholder="TC KİMLİK NO (11 hane)" maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
             <input type="text" id="dogumTarihi" placeholder="GG.AA.YYYY (Örn: 05111979)" maxlength="10" oninput="tarihBicimlendir(this)">
-            <input type="text" id="plaka" placeholder="PLAKA">
+            <input type="text" id="plaka" placeholder="PLAKA" oninput="this.value = this.value.toLocaleUpperCase('tr-TR')">
             <button id="islemButon" onclick="kayitIslemiYap()">Ekle</button>
         </div>
 
@@ -165,7 +173,7 @@ q<!DOCTYPE html>
         </div>
 
         <div class="search-box">
-            <input type="text" id="aramaInput" onkeyup="filtrele()" placeholder="🔍 İsim, TC, Plaka ara...">
+            <input type="text" id="aramaInput" oninput="this.value = this.value.toLocaleUpperCase('tr-TR')" onkeyup="filtrele()" placeholder="🔍 İSİM, TC, PLAKA ARA...">
         </div>
 
         <div class="table-responsive">
@@ -176,7 +184,7 @@ q<!DOCTYPE html>
                         <th>TC KİMLİK NO</th>
                         <th>DOĞUM TARİHİ</th>
                         <th>PLAKA</th>
-                        <th style="width: 120px;">İŞLEM</th>
+                        <th style="width: 175px;">İŞLEM</th>
                     </tr>
                 </thead>
                 <tbody id="tabloGovdesi"></tbody>
@@ -189,8 +197,20 @@ q<!DOCTYPE html>
         let duzenlenenIndex = null;
 
         window.onload = function() {
+            kayitlariSirala();
             listeyiCiz(kayitlar);
         };
+
+        function kayitlariSirala() {
+            kayitlar.sort((a, b) => {
+                let isimA = (a.adi || "").trim();
+                let isimB = (b.adi || "").trim();
+                if (!isimA && !isimB) return 0;
+                if (!isimA) return 1;
+                if (!isimB) return -1;
+                return isimA.localeCompare(isimB, 'tr-TR');
+            });
+        }
 
         function tarihBicimlendir(input) {
             let val = input.value.replace(/\D/g, '');
@@ -203,10 +223,10 @@ q<!DOCTYPE html>
         }
 
         function kayitIslemiYap() {
-            let adi = document.getElementById("adiSoyadi").value.trim();
+            let adi = document.getElementById("adiSoyadi").value.trim().toLocaleUpperCase('tr-TR');
             let tc = document.getElementById("tcNo").value.trim();
             let dogum = document.getElementById("dogumTarihi").value.trim();
-            let plaka = document.getElementById("plaka").value.trim();
+            let plaka = document.getElementById("plaka").value.trim().toLocaleUpperCase('tr-TR');
 
             if (tc !== "" && tc.length !== 11) {
                 alert("Hata: TC Kimlik Numarası eksiksiz 11 haneli olmalıdır! (Şu anki hane: " + tc.length + ")");
@@ -253,7 +273,6 @@ q<!DOCTYPE html>
             document.getElementById("plaka").value = "";
         }
 
-        // ÇOK ESNEK VE GARANTİLİ TOPLU AKTARMA
         function exceldenAktar() {
             let text = document.getElementById("excelInput").value.trim();
             if (!text) {
@@ -265,26 +284,23 @@ q<!DOCTYPE html>
             let eklenenSayisi = 0;
 
             satirlar.forEach(satir => {
-                if (!satir.trim()) return; // Boş satırları atla
+                if (!satir.trim()) return;
                 
-                // Başlık satırı yapıştırıldıysa ("ADI SOYADI..." gibi) atla
-                if (satir.toUpperCase().includes("ADI SOYADI") || satir.toUpperCase().includes("TC KIMLIK")) {
+                if (satir.toLocaleUpperCase('tr-TR').includes("ADI SOYADI") || satir.toLocaleUpperCase('tr-TR').includes("TC KİMLİK") || satir.toUpperCase().includes("TC KIMLIK")) {
                     return;
                 }
 
-                // Önce sekme (\t) ile bölmeyi dene, olmazsa boşluklara göre böl
                 let sutunlar = satir.split("\t");
                 if (sutunlar.length < 4) {
                     sutunlar = satir.trim().split(/\s{2,}/);
                 }
 
                 if (sutunlar.length >= 3) {
-                    let adi = sutunlar[0] ? sutunlar[0].trim() : "";
+                    let adi = sutunlar[0] ? sutunlar[0].trim().toLocaleUpperCase('tr-TR') : "";
                     let tc = sutunlar[1] ? sutunlar[1].trim() : "";
                     let dogum = sutunlar[2] ? sutunlar[2].trim() : "";
-                    let plaka = sutunlar[3] ? sutunlar[3].trim() : "";
+                    let plaka = sutunlar[3] ? sutunlar[3].trim().toLocaleUpperCase('tr-TR') : "";
 
-                    // TC 11 haneliyse veya boşsa kabul et (esneklik sağlandı)
                     kayitlar.push({ adi, tc, dogum, plaka });
                     eklenenSayisi++;
                 }
@@ -320,6 +336,29 @@ q<!DOCTYPE html>
             document.body.removeChild(a);
         }
 
+        function satiriKopyala(index, btn) {
+            let item = kayitlar[index];
+            let kopyalanacakMetin = `Adı Soyadı: ${item.adi} | TC: ${item.tc} | Doğum Tarihi: ${item.dogum} | Plaka: ${item.plaka}`;
+            
+            navigator.clipboard.writeText(kopyalanacakMetin).then(() => {
+                let eskiYazi = btn.innerText;
+                btn.innerText = "Kopyalandı!";
+                btn.style.backgroundColor = "#2c3e50";
+                setTimeout(() => {
+                    btn.innerText = eskiYazi;
+                    btn.style.backgroundColor = "#f39c12";
+                }, 1500);
+            }).catch(() => {
+                let geciciInput = document.createElement("textarea");
+                geciciInput.value = kopyalanacakMetin;
+                document.body.appendChild(geciciInput);
+                geciciInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(geciciInput);
+                alert("Bilgiler kopyalandı:\n" + kopyalanacakMetin);
+            });
+        }
+
         function sil(index) {
             if (confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
                 kayitlar.splice(index, 1);
@@ -335,8 +374,14 @@ q<!DOCTYPE html>
         }
 
         function kaydetVeYenile() {
+            kayitlariSirala();
             localStorage.setItem("gelismisKayitlar", JSON.stringify(kayitlar));
-            listeyiCiz(kayitlar);
+            
+            if (document.getElementById("aramaInput").value.trim() !== "") {
+                filtrele();
+            } else {
+                listeyiCiz(kayitlar);
+            }
         }
 
         function listeyiCiz(veriDizisi) {
@@ -344,11 +389,12 @@ q<!DOCTYPE html>
             tbody.innerHTML = "";
 
             if (veriDizisi.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#888;'>Henüz kayıt eklenmemiş.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#888;'>Kayıt bulunamadı.</td></tr>";
                 return;
             }
 
-            veriDizisi.forEach((item, index) => {
+            veriDizisi.forEach((item) => {
+                let gercekIndex = kayitlar.indexOf(item);
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${item.adi}</td>
@@ -357,8 +403,9 @@ q<!DOCTYPE html>
                     <td>${item.plaka}</td>
                     <td>
                         <div class="islem-td">
-                            <button class="duzenle-btn" onclick="duzenleBaslat(${index})">Düzenle</button>
-                            <button class="sil-btn" onclick="sil(${index})">Sil</button>
+                            <button class="kopyala-btn" onclick="satiriKopyala(${gercekIndex}, this)">Kopyala</button>
+                            <button class="duzenle-btn" onclick="duzenleBaslat(${gercekIndex})">Düzenle</button>
+                            <button class="sil-btn" onclick="sil(${gercekIndex})">Sil</button>
                         </div>
                     </td>
                 `;
