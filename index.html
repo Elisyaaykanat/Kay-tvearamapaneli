@@ -99,26 +99,38 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 5px;
-            min-width: 650px;
+            min-width: 680px;
         }
         th, td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
             font-size: 13px;
+            vertical-align: middle;
         }
         th {
             background-color: #2c3e50;
             color: white;
         }
         tr:nth-child(even) { background-color: #f9f9f9; }
+
+        .tc-hucre {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .tc-no {
+            white-space: nowrap;
+        }
         
         .islem-td { display: flex; gap: 4px; }
         .kopyala-btn {
             background-color: #f39c12;
-            padding: 5px 8px;
+            padding: 4px 8px;
             font-size: 11px;
             width: auto;
+            flex-shrink: 0;
         }
         .kopyala-btn:hover { background-color: #d68910; }
 
@@ -167,7 +179,7 @@
         <div class="excel-section">
             <strong>Excel İşlemleri:</strong>
             <div class="info-text">Excel'den kopyalayıp buraya yapıştırarak toplu ekleyebilir veya sistemdeki kayıtları sütunlu Excel olarak indirebilirsiniz.</div>
-            <textarea id="excelInput" placeholder="Örn: SALİH AYKANAT \t 5261504488 \t 05.11.1979 \t 34NP058"></textarea>
+            <textarea id="excelInput" placeholder="Örnek: Adı soyadı, tc kimlik no, doğum tarihi, plaka."></textarea>
             <button class="excel-btn" onclick="exceldenAktar()">Toplu Aktar (İçe Aktar)</button>
             <button class="export-btn" onclick="excelsIndir()">📊 Tüm Kayıtları Excel Olarak İndir (Sütunlu)</button>
         </div>
@@ -184,7 +196,7 @@
                         <th>TC KİMLİK NO</th>
                         <th>DOĞUM TARİHİ</th>
                         <th>PLAKA</th>
-                        <th style="width: 175px;">İŞLEM</th>
+                        <th style="width: 115px;">İŞLEM</th>
                     </tr>
                 </thead>
                 <tbody id="tabloGovdesi"></tbody>
@@ -224,7 +236,7 @@
 
         function kayitIslemiYap() {
             let adi = document.getElementById("adiSoyadi").value.trim().toLocaleUpperCase('tr-TR');
-            let tc = document.getElementById("tcNo").value.trim();
+            let tc = document.getElementById("tcNo").value.trim().replace(/\D/g, '');
             let dogum = document.getElementById("dogumTarihi").value.trim();
             let plaka = document.getElementById("plaka").value.trim().toLocaleUpperCase('tr-TR');
 
@@ -297,7 +309,7 @@
 
                 if (sutunlar.length >= 3) {
                     let adi = sutunlar[0] ? sutunlar[0].trim().toLocaleUpperCase('tr-TR') : "";
-                    let tc = sutunlar[1] ? sutunlar[1].trim() : "";
+                    let tc = sutunlar[1] ? sutunlar[1].trim().replace(/\D/g, '') : "";
                     let dogum = sutunlar[2] ? sutunlar[2].trim() : "";
                     let plaka = sutunlar[3] ? sutunlar[3].trim().toLocaleUpperCase('tr-TR') : "";
 
@@ -334,29 +346,55 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
-        function satiriKopyala(index, btn) {
+        function tcKopyala(index, btn) {
             let item = kayitlar[index];
-            let kopyalanacakMetin = `Adı Soyadı: ${item.adi} | TC: ${item.tc} | Doğum Tarihi: ${item.dogum} | Plaka: ${item.plaka}`;
-            
-            navigator.clipboard.writeText(kopyalanacakMetin).then(() => {
-                let eskiYazi = btn.innerText;
-                btn.innerText = "Kopyalandı!";
-                btn.style.backgroundColor = "#2c3e50";
-                setTimeout(() => {
-                    btn.innerText = eskiYazi;
-                    btn.style.backgroundColor = "#f39c12";
-                }, 1500);
-            }).catch(() => {
-                let geciciInput = document.createElement("textarea");
-                geciciInput.value = kopyalanacakMetin;
-                document.body.appendChild(geciciInput);
-                geciciInput.select();
+            let sadeceRakamlardanTc = (item.tc || "").replace(/\D/g, '');
+
+            if (!sadeceRakamlardanTc) {
+                alert("Kopyalanacak TC kimlik numarası bulunmuyor!");
+                return;
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(sadeceRakamlardanTc).then(() => {
+                    butonGeriBildirimi(btn);
+                }).catch(() => {
+                    eskiYontemleKopyala(sadeceRakamlardanTc, btn);
+                });
+            } else {
+                eskiYontemleKopyala(sadeceRakamlardanTc, btn);
+            }
+        }
+
+        function eskiYontemleKopyala(metin, btn) {
+            let geciciInput = document.createElement("textarea");
+            geciciInput.value = metin;
+            geciciInput.setAttribute("readonly", "");
+            geciciInput.style.position = "absolute";
+            geciciInput.style.left = "-9999px";
+            document.body.appendChild(geciciInput);
+            geciciInput.select();
+            geciciInput.setSelectionRange(0, metin.length);
+            try {
                 document.execCommand("copy");
-                document.body.removeChild(geciciInput);
-                alert("Bilgiler kopyalandı:\n" + kopyalanacakMetin);
-            });
+                butonGeriBildirimi(btn);
+            } catch (e) {
+                alert("TC kopyalanamadı: " + metin);
+            }
+            document.body.removeChild(geciciInput);
+        }
+
+        function butonGeriBildirimi(btn) {
+            let eskiYazi = btn.innerText;
+            btn.innerText = "Kopyalandı!";
+            btn.style.backgroundColor = "#2c3e50";
+            setTimeout(() => {
+                btn.innerText = eskiYazi;
+                btn.style.backgroundColor = "#f39c12";
+            }, 1500);
         }
 
         function sil(index) {
@@ -398,14 +436,18 @@
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${item.adi}</td>
-                    <td>${item.tc}</td>
+                    <td>
+                        <div class="tc-hucre">
+                            <span class="tc-no">${item.tc}</span>
+                            <button type="button" class="kopyala-btn" onclick="tcKopyala(${gercekIndex}, this)">Kopyala</button>
+                        </div>
+                    </td>
                     <td>${item.dogum}</td>
                     <td>${item.plaka}</td>
                     <td>
                         <div class="islem-td">
-                            <button class="kopyala-btn" onclick="satiriKopyala(${gercekIndex}, this)">Kopyala</button>
-                            <button class="duzenle-btn" onclick="duzenleBaslat(${gercekIndex})">Düzenle</button>
-                            <button class="sil-btn" onclick="sil(${gercekIndex})">Sil</button>
+                            <button type="button" class="duzenle-btn" onclick="duzenleBaslat(${gercekIndex})">Düzenle</button>
+                            <button type="button" class="sil-btn" onclick="sil(${gercekIndex})">Sil</button>
                         </div>
                     </td>
                 `;
